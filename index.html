@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClipForge AI — Facecam + Gameplay Split 9:16 Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Anton&family=Bangers&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090A0F;
+      --panel-dark: #11131A;
+      --border-dark: #1F2430;
+      --neo-mint: #2EE59D;
+      --neon-pink: #F472B6;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .glass-panel {
+      background: rgba(17, 19, 26, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-dark);
+    }
+    .crop-box {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+      touch-action: none;
+      transition: box-shadow 0.15s ease;
+    }
+    .crop-box.facecam-box {
+      border: 2.5px solid #F472B6;
+      background: rgba(244, 114, 182, 0.12);
+      box-shadow: 0 0 18px rgba(244, 114, 182, 0.35);
+    }
+    .crop-box.gameplay-box {
+      border: 2.5px solid #2EE59D;
+      background: rgba(46, 229, 157, 0.08);
+      box-shadow: 0 0 18px rgba(46, 229, 157, 0.28);
+    }
+    .resize-handle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      right: -7px;
+      bottom: -7px;
+      border-radius: 9999px;
+      cursor: nwse-resize;
+      z-index: 20;
+    }
+    .facecam-box .resize-handle {
+      background: #F472B6;
+      border: 2px solid #090A0F;
+    }
+    .gameplay-box .resize-handle {
+      background: #2EE59D;
+      border: 2px solid #090A0F;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090A0F;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #262B38;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-[#1F2430] bg-[#0D0F16]/95 sticky top-0 z-40 px-4 lg:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2EE59D] to-[#F472B6] flex items-center justify-center font-black text-black text-lg shadow-lg">
+        CF
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white">ClipForge <span class="text-[#2EE59D]">AI</span></h1>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F472B6]/15 text-[#F472B6] border border-[#F472B6]/30">Split Studio 9:16</span>
+        </div>
+        <p class="text-xs text-gray-400">Facecam + Gameplay Dual Crop • Hasta 2K 120 FPS • Subtítulos Dinámicos</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 sm:gap-3">
+      <label class="cursor-pointer px-3 py-2 rounded-lg bg-[#161923] hover:bg-[#1E2331] border border-[#2A3142] text-xs font-semibold text-gray-200 flex items-center gap-2 transition">
+        <span>📁 Cargar Video Local</span>
+        <input id="videoInput" type="file" accept="video/*" class="hidden" />
+      </label>
+      <button id="demoBtn" class="px-3 py-2 rounded-lg bg-[#161923] hover:bg-[#1E2331] border border-[#2A3142] text-xs font-semibold text-[#2EE59D] transition">
+        🎮 Demo Stream 16:9
+      </button>
+      <button id="exportBtn" class="px-4 py-2 rounded-lg bg-gradient-to-r from-[#2EE59D] to-[#10B981] hover:opacity-95 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-[#2EE59D]/20 flex items-center gap-2 transition">
+        <span>⚡ Exportar 9:16 (.webm)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 lg:p-6 max-w-[1600px] w-full mx-auto">
+
+    <!-- Left Column: Source 16:9 Canvas & Dual Crop Selectors -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+      <div class="glass-panel rounded-2xl p-4 flex flex-col gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-[#F472B6]"></span>
+              Lienzo Fuente 16:9 — Selector Dual Arrastrable
+            </h2>
+            <p class="text-xs text-gray-400">Arrastra y redimensiona el cuadro <span class="text-[#F472B6] font-semibold">Rosa (Facecam)</span> y el cuadro <span class="text-[#2EE59D] font-semibold">Verde (Gameplay)</span>.</p>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px]">
+            <button onclick="snapFacecam('tl')" class="px-2 py-1 rounded bg-[#1A1E29] hover:bg-[#252B3B] border border-[#2D3446] text-gray-300">Sup. Izq</button>
+            <button onclick="snapFacecam('tr')" class="px-2 py-1 rounded bg-[#1A1E29] hover:bg-[#252B3B] border border-[#2D3446] text-gray-300">Sup. Der</button>
+            <button onclick="snapFacecam('bl')" class="px-2 py-1 rounded bg-[#1A1E29] hover:bg-[#252B3B] border border-[#2D3446] text-gray-300">Inf. Izq</button>
+            <button onclick="snapFacecam('br')" class="px-2 py-1 rounded bg-[#1A1E29] hover:bg-[#252B3B] border border-[#2D3446] text-gray-300">Inf. Der</button>
+          </div>
+        </div>
+
+        <!-- 16:9 Interactive Stage -->
+        <div id="sourceContainer" class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-[#262C3A] select-none">
+          <video id="sourceVideo" class="w-full h-full object-contain hidden" playsinline loop muted></video>
+          <canvas id="demoSourceCanvas" class="w-full h-full block"></canvas>
+
+          <!-- Overlay Crop Boxes -->
+          <div id="gameplayBox" class="crop-box gameplay-box" style="left: 18%; top: 5%; width: 64%; height: 90%;">
+            <span class="absolute top-1.5 left-2 px-2 py-0.5 rounded bg-[#2EE59D] text-black font-extrabold text-[10px] tracking-wide uppercase shadow">
+              🎮 Gameplay
+            </span>
+            <div class="resize-handle" data-target="gameplay"></div>
+          </div>
+
+          <div id="facecamBox" class="crop-box facecam-box" style="left: 4%; top: 58%; width: 24%; height: 34%;">
+            <span class="absolute top-1.5 left-2 px-2 py-0.5 rounded bg-[#F472B6] text-black font-extrabold text-[10px] tracking-wide uppercase shadow">
+              📷 Cámara
+            </span>
+            <div class="resize-handle" data-target="facecam"></div>
+          </div>
+        </div>
+
+        <!-- Playback & Trim Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-[#0C0E14] p-3 rounded-xl border border-[#1E2330]">
+          <div class="flex items-center gap-2">
+            <button id="playPauseBtn" class="px-3 py-1.5 rounded-lg bg-[#2EE59D] text-black font-bold text-xs">⏸ Pausar</button>
+            <button id="muteBtn" class="px-3 py-1.5 rounded-lg bg-[#191D28] text-gray-300 border border-[#2A3040] text-xs">🔇 Silenciado</button>
+          </div>
+          <div class="flex items-center gap-3 flex-1 min-w-[200px]">
+            <span id="timeLabel" class="text-xs font-mono text-gray-400">00:00 / 00:15</span>
+            <input id="seekSlider" type="range" min="0" max="100" value="0" class="w-full accent-[#2EE59D] cursor-pointer" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout & Subtitle Controls -->
+      <div class="glass-panel rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Split Mode Controls -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#2EE59D]">1. Diseño Vertical 9:16</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-layout="split-30-70" class="layout-btn active-layout px-3 py-2 rounded-lg text-xs font-bold border border-[#2EE59D] bg-[#2EE59D]/15 text-white">Split 30% / 70%</button>
+            <button data-layout="split-40-60" class="layout-btn px-3 py-2 rounded-lg text-xs font-bold border border-[#262C3A] bg-[#141822] text-gray-300">Split 40% / 60%</button>
+            <button data-layout="split-50-50" class="layout-btn px-3 py-2 rounded-lg text-xs font-bold border border-[#262C3A] bg-[#141822] text-gray-300">Split 50% / 50%</button>
+            <button data-layout="pip-circle" class="layout-btn px-3 py-2 rounded-lg text-xs font-bold border border-[#262C3A] bg-[#141822] text-gray-300">PiP Flotante</button>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-xs text-gray-300">Marco de Cámara:</span>
+            <select id="camShapeSelect" class="bg-[#141822] border border-[#2A3142] rounded-lg px-2.5 py-1.5 text-xs text-white">
+              <option value="neon-split">Divisor Neón (Rosa / Menta)</option>
+              <option value="rounded-card">Tarjeta Redondeada</option>
+              <option value="circle-pip">Círculo Flotante</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-300">Guías Safe Zone (TikTok/Shorts):</span>
+            <input id="safeZoneToggle" type="checkbox" checked class="w-4 h-4 accent-[#F472B6]" />
+          </div>
+        </div>
+
+        <!-- Subtitle & Export Quality Controls -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#F472B6]">2. Subtítulos & Calidad</h3>
+          <div>
+            <label class="block text-[11px] text-gray-400 mb-1">Texto de Subtítulo Dinámico:</label>
+            <input id="subtitleText" type="text" value="¡NO PUEDE SER! ¡MIREN ESE CLUTCH! 🔥" class="w-full bg-[#141822] border border-[#2A3142] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#F472B6]" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Estilo Subtítulo:</label>
+              <select id="subtitleStyle" class="w-full bg-[#141822] border border-[#2A3142] rounded-lg px-2 py-1.5 text-xs text-white">
+                <option value="hormozi">Hormozi Pop</option>
+                <option value="neon">Cyber Neón</option>
+                <option value="clean">Minimal Box</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">Resolución Export:</label>
+              <select id="exportRes" class="w-full bg-[#141822] border border-[#2A3142] rounded-lg px-2 py-1.5 text-xs text-white">
+                <option value="1080x1920">1080×1920 (Full HD 60fps)</option>
+                <option value="1440x2560">1440×2560 (2K QHD)</option>
+                <option value="720x1280">720×1280 (Rápido)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Real-time 9:16 Vertical Preview -->
+    <section class="lg:col-span-5 flex flex-col items-center">
+      <div class="glass-panel rounded-2xl p-4 w-full flex flex-col items-center gap-3">
+        <div class="w-full flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-white">Vista Previa Vertical 9:16</span>
+          <span id="statusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-[#2EE59D]/15 text-[#2EE59D] font-semibold">En Vivo • 60 FPS</span>
+        </div>
+
+        <!-- 9:16 Preview Frame -->
+        <div class="relative w-full max-w-[330px] aspect-[9/16] bg-black rounded-2xl overflow-hidden border-2 border-[#262C3A] shadow-2xl">
+          <canvas id="outputCanvas" width="720" height="1280" class="w-full h-full block"></canvas>
+
+          <!-- Safe Zone Overlay -->
+          <div id="safeZoneOverlay" class="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
+            <div class="h-12 border border-dashed border-white/25 rounded-lg flex items-center justify-center text-[10px] text-white/40">
+              SAFE ZONE SUPERIOR (9:16)
+            </div>
+            <div class="flex justify-end">
+              <div class="w-11 h-44 border border-dashed border-[#F472B6]/40 rounded-lg flex items-center justify-center text-[9px] text-[#F472B6]/60 text-center px-1">
+                UI Likes / Share
+              </div>
+            </div>
+            <div class="h-20 border border-dashed border-white/25 rounded-lg flex items-center justify-center text-[10px] text-white/40">
+              SAFE ZONE DESCRIPCIÓN
+            </div>
+          </div>
+        </div>
+
+        <p id="exportProgress" class="text-xs text-center text-gray-400 min-h-[18px]">
+          Ajusta los cuadros en el video 16:9 y presiona <strong class="text-[#2EE59D]">Exportar 9:16</strong>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const sourceVideo = document.getElementById('sourceVideo');
+    const demoSourceCanvas = document.getElementById('demoSourceCanvas');
+    const demoCtx = demoSourceCanvas.getContext('2d');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const outCtx = outputCanvas.getContext('2d');
+    const sourceContainer = document.getElementById('sourceContainer');
+
+    const facecamBox = document.getElementById('facecamBox');
+    const gameplayBox = document.getElementById('gameplayBox');
+
+    let useDemoMode = true;
+    let isPlaying = true;
+    let demoTime = 0;
+    let currentLayout = 'split-30-70';
+
+    // Normalized crop coordinates (0 to 1)
+    const crops = {
+      facecam: { x: 0.04, y: 0.58, w: 0.24, h: 0.34 },
+      gameplay: { x: 0.18, y: 0.05, w: 0.64, h: 0.90 }
+    };
+
+    function syncBoxDOM(type) {
+      const el = type === 'facecam' ? facecamBox : gameplayBox;
+      const c = crops[type];
+      el.style.left = (c.x * 100) + '%';
+      el.style.top = (c.y * 100) + '%';
+      el.style.width = (c.w * 100) + '%';
+      el.style.height = (c.h * 100) + '%';
+    }
+
+    function snapFacecam(corner) {
+      const w = crops.facecam.w;
+      const h = crops.facecam.h;
+      if (corner === 'tl') { crops.facecam.x = 0.02; crops.facecam.y = 0.04; }
+      if (corner === 'tr') { crops.facecam.x = 0.98 - w; crops.facecam.y = 0.04; }
+      if (corner === 'bl') { crops.facecam.x = 0.02; crops.facecam.y = 0.96 - h; }
+      if (corner === 'br') { crops.facecam.x = 0.98 - w; crops.facecam.y = 0.96 - h; }
+      syncBoxDOM('facecam');
+    }
+
+    // Drag & Resize Logic for both boxes
+    let activeAction = null;
+    function setupBoxInteraction(type, boxEl) {
+      boxEl.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        const isResize = e.target.classList.contains('resize-handle');
+        const rect = sourceContainer.getBoundingClientRect();
+        activeAction = {
+          type,
+          mode: isResize ? 'resize' : 'drag',
+          startX: e.clientX,
+          startY: e.clientY,
+          containerW: rect.width,
+          containerH: rect.height,
+          orig: { ...crops[type] }
+        };
+        boxEl.setPointerCapture(e.pointerId);
+      });
+
+      boxEl.addEventListener('pointermove', (e) => {
+        if (!activeAction || activeAction.type !== type) return;
+        const dx = (e.clientX - activeAction.startX) / activeAction.containerW;
+        const dy = (e.clientY - activeAction.startY) / activeAction.containerH;
+        const c = crops[type];
+
+        if (activeAction.mode === 'drag') {
+          c.x = Math.max(0, Math.min(1 - c.w, activeAction.orig.x + dx));
+          c.y = Math.max(0, Math.min(1 - c.h, activeAction.orig.y + dy));
+        } else {
+          c.w = Math.max(0.10, Math.min(1 - c.x, activeAction.orig.w + dx));
+          c.h = Math.max(0.10, Math.min(1 - c.y, activeAction.orig.h + dy));
+        }
+        syncBoxDOM(type);
+      });
+
+      boxEl.addEventListener('pointerup', () => {
+        activeAction = null;
+      });
+    }
+
+    setupBoxInteraction('facecam', facecamBox);
+    setupBoxInteraction('gameplay', gameplayBox);
+
+    // Layout Buttons
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.layout-btn').forEach(b => {
+          b.classList.remove('border-[#2EE59D]', 'bg-[#2EE59D]/15', 'text-white');
+          b.classList.add('border-[#262C3A]', 'bg-[#141822]', 'text-gray-300');
+        });
+        btn.classList.remove('border-[#262C3A]', 'bg-[#141822]', 'text-gray-300');
+        btn.classList.add('border-[#2EE59D]', 'bg-[#2EE59D]/15', 'text-white');
+        currentLayout = btn.dataset.layout;
+      });
+    });
+
+    // Safe Zone Toggle
+    document.getElementById('safeZoneToggle').addEventListener('change', (e) => {
+      document.getElementById('safeZoneOverlay').style.display = e.target.checked ? 'flex' : 'none';
+    });
+
+    // Upload local video
+    document.getElementById('videoInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      sourceVideo.src = url;
+      sourceVideo.classList.remove('hidden');
+      demoSourceCanvas.classList.add('hidden');
+      useDemoMode = false;
+      sourceVideo.play();
+      isPlaying = true;
+      document.getElementById('playPauseBtn').textContent = '⏸ Pausar';
+    });
+
+    // Switch back to Demo Stream
+    document.getElementById('demoBtn').addEventListener('click', () => {
+      useDemoMode = true;
+      sourceVideo.pause();
+      sourceVideo.classList.add('hidden');
+      demoSourceCanvas.classList.remove('hidden');
+      isPlaying = true;
+      document.getElementById('playPauseBtn').textContent = '⏸ Pausar';
+    });
+
+    // Play / Pause
+    document.getElementById('playPauseBtn').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (!useDemoMode) {
+        isPlaying ? sourceVideo.play() : sourceVideo.pause();
+      }
+      document.getElementById('playPauseBtn').textContent = isPlaying ? '⏸ Pausar' : '▶ Reproducir';
+    });
+
+    // Mute / Unmute
+    document.getElementById('muteBtn').addEventListener('click', () => {
+      sourceVideo.muted = !sourceVideo.muted;
+      document.getElementById('muteBtn').textContent = sourceVideo.muted ? '🔇 Silenciado' : '🔊 Sonido';
+    });
+
+    // Seek Bar
+    const seekSlider = document.getElementById('seekSlider');
+    seekSlider.addEventListener('input', () => {
+      if (!useDemoMode && sourceVideo.duration) {
+        sourceVideo.currentTime = (seekSlider.value / 100) * sourceVideo.duration;
+      } else {
+        demoTime = (seekSlider.value / 100) * 15;
+      }
+    });
+
+    // Simulated 16:9 Stream Canvas (Gameplay + Bottom-Left Facecam)
+    function drawDemo16x9(t) {
+      demoSourceCanvas.width = 1280;
+      demoSourceCanvas.height = 720;
+      const ctx = demoCtx;
+
+      // Gameplay arena background
+      const grad = ctx.createLinearGradient(0, 0, 1280, 720);
+      grad.addColorStop(0, '#0F172A');
+      grad.addColorStop(0.5, '#1E1B4B');
+      grad.addColorStop(1, '#090D16');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1280, 720);
+
+      // Perspective grid lines
+      ctx.strokeStyle = 'rgba(46, 229, 157, 0.18)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {
+        const x = ((i * 90 + t * 140) % 1360) - 40;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x - 120, 720);
+        ctx.stroke();
+      }
+
+      // Action target / Roblox-style character silhouette
+      const cx = 640 + Math.sin(t * 2.4) * 180;
+      const cy = 340 + Math.cos(t * 3.1) * 65;
+      ctx.fillStyle = '#2EE59D';
+      ctx.beginPath();
+      ctx.roundRect(cx - 48, cy - 48, 96, 96, 18);
+      ctx.fill();
+
+      ctx.fillStyle = '#090A0F';
+      ctx.fillRect(cx - 24, cy - 16, 14, 14);
+      ctx.fillRect(cx + 10, cy - 16, 14, 14);
+
+      // HUD top bar
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.roundRect(450, 24, 380, 44, 10);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 20px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('RONDA FINAL • 1 VS 4 CLUTCH', 640, 53);
+
+      // Simulated Facecam overlay at bottom-left
+      const camX = 50, camY = 415, camW = 310, camH = 245;
+      ctx.fillStyle = '#18181B';
+      ctx.fillRect(camX, camY, camW, camH);
+      ctx.strokeStyle = '#F472B6';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(camX, camY, camW, camH);
+
+      // Streamer avatar reaction
+      const bob = Math.sin(t * 8) * 5;
+      ctx.fillStyle = '#F472B6';
+      ctx.beginPath();
+      ctx.arc(camX + camW / 2, camY + 105 + bob, 44, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#FDE047';
+      ctx.beginPath();
+      ctx.roundRect(camX + camW / 2 - 58, camY + 158 + bob, 116, 75, 24);
+      ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 14px Inter, sans-serif';
+      ctx.fillText('LIVE FACECAM', camX + camW / 2, camY + 26);
+    }
+
+    // Draw cropped region helper (object-fit cover inside target rect)
+    function drawCroppedRegion(sourceEl, srcW, srcH, cropNorm, dx, dy, dw, dh) {
+      const sx = cropNorm.x * srcW;
+      const sy = cropNorm.y * srcH;
+      const sw = Math.max(1, cropNorm.w * srcW);
+      const sh = Math.max(1, cropNorm.h * srcH);
+
+      const srcAspect = sw / sh;
+      const dstAspect = dw / dh;
+
+      let finalSx = sx, finalSy = sy, finalSw = sw, finalSh = sh;
+      if (srcAspect > dstAspect) {
+        finalSw = sh * dstAspect;
+        finalSx = sx + (sw - finalSw) / 2;
+      } else {
+        finalSh = sw / dstAspect;
+        finalSy = sy + (sh - finalSh) / 2;
+      }
+      outCtx.drawImage(sourceEl, finalSx, finalSy, finalSw, finalSh, dx, dy, dw, dh);
+    }
+
+    // Render 9:16 Vertical Composition
+    function renderVerticalFrame() {
+      const W = outputCanvas.width;
+      const H = outputCanvas.height;
+      outCtx.fillStyle = '#090A0F';
+      outCtx.fillRect(0, 0, W, H);
+
+      const sourceEl = useDemoMode ? demoSourceCanvas : sourceVideo;
+      const srcW = useDemoMode ? demoSourceCanvas.width : (sourceVideo.videoWidth || 1280);
+      const srcH = useDemoMode ? demoSourceCanvas.height : (sourceVideo.videoHeight || 720);
+
+      const camShape = document.getElementById('camShapeSelect').value;
+
+      if (currentLayout === 'pip-circle' || camShape === 'circle-pip') {
+        // Full Gameplay background
+        drawCroppedRegion(sourceEl, srcW, srcH, crops.gameplay, 0, 0, W, H);
+
+        // Floating Facecam PiP
+        const pipSize = Math.round(W * 0.36);
+        const pipX = W - pipSize - 36;
+        const pipY = 130;
+
+        outCtx.save();
+        outCtx.beginPath();
+        if (camShape === 'circle-pip') {
+          outCtx.arc(pipX + pipSize / 2, pipY + pipSize / 2, pipSize / 2, 0, Math.PI * 2);
+        } else {
+          outCtx.roundRect(pipX, pipY, pipSize, pipSize, 28);
+        }
+        outCtx.clip();
+        drawCroppedRegion(sourceEl, srcW, srcH, crops.facecam, pipX, pipY, pipSize, pipSize);
+        outCtx.restore();
+
+        // Neon border around PiP
+        outCtx.strokeStyle = '#F472B6';
+        outCtx.lineWidth = 6;
+        outCtx.beginPath();
+        if (camShape === 'circle-pip') {
+          outCtx.arc(pipX + pipSize / 2, pipY + pipSize / 2, pipSize / 2, 0, Math.PI * 2);
+        } else {
+          outCtx.roundRect(pipX, pipY, pipSize, pipSize, 28);
+        }
+        outCtx.stroke();
+      } else {
+        // Top/Bottom Split ratios
+        let topRatio = 0.30;
+        if (currentLayout === 'split-40-60') topRatio = 0.40;
+        if (currentLayout === 'split-50-50') topRatio = 0.50;
+
+        const topH = Math.round(H * topRatio);
+        const botH = H - topH;
+
+        if (camShape === 'rounded-card') {
+          // Gameplay full + rounded card top
+          drawCroppedRegion(sourceEl, srcW, srcH, crops.gameplay, 0, 0, W, H);
+          const pad = 28;
+          const cardW = W - pad * 2;
+          const cardH = topH - pad;
+          outCtx.save();
+          outCtx.beginPath();
+          outCtx.roundRect(pad, pad + 35, cardW, cardH, 26);
+          outCtx.clip();
+          drawCroppedRegion(sourceEl, srcW, srcH, crops.facecam, pad, pad + 35, cardW, cardH);
+          outCtx.restore();
+
+          outCtx.strokeStyle = '#F472B6';
+          outCtx.lineWidth = 5;
+          outCtx.beginPath();
+          outCtx.roundRect(pad, pad + 35, cardW, cardH, 26);
+          outCtx.stroke();
+        } else {
+          // Classic Nexus Split: Facecam Top, Gameplay Bottom
+          drawCroppedRegion(sourceEl, srcW, srcH, crops.facecam, 0, 0, W, topH);
+          drawCroppedRegion(sourceEl, srcW, srcH, crops.gameplay, 0, topH, W, botH);
+
+          // Glowing Split Divider Line
+          const divGrad = outCtx.createLinearGradient(0, topH, W, topH);
+          divGrad.addColorStop(0, '#F472B6');
+          divGrad.addColorStop(1, '#2EE59D');
+          outCtx.fillStyle = divGrad;
+          outCtx.fillRect(0, topH - 4, W, 8);
+        }
+      }
+
+      // Dynamic Subtitles
+      const subText = document.getElementById('subtitleText').value.trim();
+      const subStyle = document.getElementById('subtitleStyle').value;
+      if (subText) {
+        const subY = Math.round(H * 0.76);
+        outCtx.save();
+        outCtx.textAlign = 'center';
+        outCtx.font = '900 44px Montserrat, Inter, sans-serif';
+
+        if (subStyle === 'clean') {
+          const metrics = outCtx.measureText(subText);
+          const boxW = Math.min(W - 60, metrics.width + 44);
+          outCtx.fillStyle = 'rgba(9, 10, 15, 0.85)';
+          outCtx.beginPath();
+          outCtx.roundRect((W - boxW) / 2, subY - 44, boxW, 64, 16);
+          outCtx.fill();
+          outCtx.fillStyle = '#FFFFFF';
+          outCtx.fillText(subText, W / 2, subY, W - 80);
+        } else if (subStyle === 'neon') {
+          outCtx.shadowColor = '#2EE59D';
+          outCtx.shadowBlur = 18;
+          outCtx.lineWidth = 8;
+          outCtx.strokeStyle = '#090A0F';
+          outCtx.strokeText(subText, W / 2, subY, W - 70);
+          outCtx.fillStyle = '#2EE59D';
+          outCtx.fillText(subText, W / 2, subY, W - 70);
+        } else {
+          // Hormozi Pop
+          outCtx.lineWidth = 10;
+          outCtx.strokeStyle = '#000000';
+          outCtx.strokeText(subText, W / 2, subY, W - 70);
+          outCtx.fillStyle = '#FACC15';
+          outCtx.fillText(subText, W / 2, subY, W - 70);
+        }
+        outCtx.restore();
+      }
+    }
+
+    // Main Animation Loop
+    let lastTs = performance.now();
+    function tick(now) {
+      const dt = (now - lastTs) / 1000;
+      lastTs = now;
+
+      if (isPlaying) {
+        if (useDemoMode) {
+          demoTime = (demoTime + dt) % 15;
+          drawDemo16x9(demoTime);
+          seekSlider.value = (demoTime / 15) * 100;
+          document.getElementById('timeLabel').textContent =
+            `00:${String(Math.floor(demoTime)).padStart(2, '0')} / 00:15`;
+        } else if (sourceVideo.duration) {
+          seekSlider.value = (sourceVideo.currentTime / sourceVideo.duration) * 100;
+          const cur = Math.floor(sourceVideo.currentTime);
+          const tot = Math.floor(sourceVideo.duration);
+          document.getElementById('timeLabel').textContent =
+            `${String(Math.floor(cur/60)).padStart(2,'0')}:${String(cur%60).padStart(2,'0')} / ${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;
+        }
+      } else if (useDemoMode) {
+        drawDemo16x9(demoTime);
+      }
+
+      renderVerticalFrame();
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // Export Real 9:16 Video using Canvas + MediaRecorder
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const exportBtn = document.getElementById('exportBtn');
+      const progressEl = document.getElementById('exportProgress');
+      const [targetW, targetH] = document.getElementById('exportRes').value.split('x').map(Number);
+
+      outputCanvas.width = targetW;
+      outputCanvas.height = targetH;
+
+      exportBtn.disabled = true;
+      exportBtn.classList.add('opacity-60');
+      progressEl.innerHTML = '⏳ <span class="text-[#2EE59D] font-bold">Grabando clip vertical 9:16 (5 seg)...</span>';
+
+      const stream = outputCanvas.captureStream(60);
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ClipForge_Split9x16_${targetW}x${targetH}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        outputCanvas.width = 720;
+        outputCanvas.height = 1280;
+        exportBtn.disabled = false;
+        exportBtn.classList.remove('opacity-60');
+        progressEl.innerHTML = '✅ <span class="text-[#2EE59D] font-bold">¡Clip 9:16 descargado con éxito!</span>';
+      };
+
+      recorder.start();
+      setTimeout(() => {
+        recorder.stop();
+      }, 5000);
+    });
+  </script>
+</body>
+</html>
